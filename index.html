@@ -157,6 +157,158 @@ body.dark .detail-card{background:#3a3a3a;}
 
 <body class="light">
 <div class="app">
+
+<header class="header">
+  <h1>Olá Gonçalo!</h1>
+  <p>Banco Expandido — Versão Avançada</p>
+  <button class="toggle-btn" onclick="toggleDarkMode()">Dark / Light</button>
+</header>
+
+<div class="nav-container">
+  <div class="nav-card active" data-target="saldos">
+    <div class="nav-dot"></div>
+    <span class="label">Saldos</span>
+  </div>
+
+  <div class="nav-card" data-target="movimentos">
+    <div class="nav-dot"></div>
+    <span class="label">Movimentos</span>
+  </div>
+
+  <div class="nav-card" data-target="planeamento">
+    <div class="nav-dot"></div>
+    <span class="label">Planeamento</span>
+  </div>
+</div>
+
+<!-- SALDOS -->
+<div id="saldos" class="tab-content active">
+  <section class="card total-card">
+    <span>Fluxo Total</span>
+    <h2>€ <span id="total">0.00</span></h2>
+    <div class="small-row">
+      <span>Sem moedas</span>
+      <span>€ <span id="sem-moedas">0.00</span></span>
+    </div>
+    <div class="small-row">
+      <span>Sem moedas e sem cartão</span>
+      <span>€ <span id="sem-moedas-cartao">0.00</span></span>
+    </div>
+  </section>
+
+  <section class="card">
+    <h3>Saldos por Aba</h3>
+    <div id="lista-saldos"></div>
+  </section>
+</div>
+
+<!-- MOVIMENTOS -->
+<div id="movimentos" class="tab-content">
+  <section class="card">
+    <h3>Novo Movimento</h3>
+    <button class="add-button" onclick="mostrarFormMovimento()">+ Mostrar / Esconder</button>
+    <div id="novo-movimento" style="display:none;">
+      <label>Tipo:</label>
+      <select id="tipo-movimento">
+        <option value="ganho">Ganho</option>
+        <option value="gasto">Gasto</option>
+      </select>
+
+      <label>Valor (€):</label>
+      <input type="number" id="valor-movimento">
+
+      <label>Descrição:</label>
+      <input type="text" id="descricao-movimento">
+
+      <label>Aba:</label>
+      <select id="aba-movimento"></select>
+
+      <label>Categoria:</label>
+      <select id="categoria-movimento">
+        <option value="Compras">Compras</option>
+        <option value="Comida">Comida</option>
+        <option value="Outros">Outros</option>
+      </select>
+
+      <label>Data (opcional):</label>
+      <input type="date" id="data-movimento">
+
+      <button class="add-button" onclick="adicionarMovimento()">Guardar Movimento</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h3>Filtros</h3>
+    <div class="filter-row">
+      <select id="filtro-mes" onchange="filtrarMovimentos()">
+        <option value="todos">Todos os meses</option>
+      </select>
+      <select id="filtro-aba" onchange="filtrarMovimentos()">
+        <option value="todas">Todas as abas</option>
+      </select>
+    </div>
+    <div class="sub-aba-mes" id="sub-abas-meses"></div>
+  </section>
+
+  <section class="card">
+    <h3>Resumo Mensal</h3>
+    <div id="resumo-mensal"></div>
+  </section>
+
+  <section class="card">
+    <h3>Movimentos</h3>
+    <div id="lista-movimentos-mensal"></div>
+  </section>
+
+  <section class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <h3 style="margin:0;">Gastos por Categoria</h3>
+      <button class="add-button" style="padding:6px 10px;font-size:12px;" onclick="abrirDetalhesGastos()">Ver detalhes</button>
+    </div>
+    <canvas id="graficoCategorias" width="400" height="200"></canvas>
+  </section>
+</div>
+
+<!-- PLANEAMENTO -->
+<div id="planeamento" class="tab-content">
+  <section class="card">
+    <h3>Planeamento Mensal</h3>
+
+    <label>Aba:</label>
+    <select id="planeamento-aba" onchange="carregarPlaneamento()"></select>
+
+    <table class="table-plan">
+      <thead>
+        <tr>
+          <th>Mês</th>
+          <th>Entradas</th>
+          <th>Gastos</th>
+          <th>Saldo</th>
+        </tr>
+      </thead>
+      <tbody id="planeamento-tbody"></tbody>
+    </table>
+  </section>
+</div>
+
+</div>
+
+<!-- PAINEL DETALHES GASTOS -->
+<div class="details-overlay" id="details-overlay" onclick="fecharDetalhes(event)">
+  <div class="details-panel" id="details-panel">
+    <div class="details-handle"></div>
+    <div class="details-title">Detalhes dos gastos</div>
+    <div class="details-sub" id="details-sub"></div>
+
+    <div class="details-section-title">Categorias</div>
+    <div id="details-categorias"></div>
+
+    <div class="details-close" onclick="fecharDetalhes(event)">Fechar</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script>
 /* ============================
    DADOS INICIAIS
@@ -185,18 +337,44 @@ const extrasAbas = ["Avô","Pais"];
 let graficoPizza = null;
 let mesAtualGrafico = null;
 
-/* ============================
-   DARK MODE
-============================ */
+/* PLANEAMENTO FIXO */
+const planeamentoData = {
+  "Money 2026":[
+    {mes:'Janeiro',entradas:60,gastos:120,saldo:2835},
+    {mes:'Fevereiro',entradas:50,gastos:0,saldo:2885},
+    {mes:'Março',entradas:50,gastos:0,saldo:2935},
+    {mes:'Abril',entradas:60,gastos:70,saldo:2925},
+    {mes:'Maio',entradas:50,gastos:0,saldo:2975},
+    {mes:'Junho',entradas:350,gastos:60,saldo:3265},
+    {mes:'Julho',entradas:60,gastos:30,saldo:3295},
+    {mes:'Agosto',entradas:60,gastos:50,saldo:3305},
+    {mes:'Setembro',entradas:60,gastos:110,saldo:3255},
+    {mes:'Outubro',entradas:60,gastos:0,saldo:3315},
+    {mes:'Novembro',entradas:50,gastos:0,saldo:3365},
+    {mes:'Dezembro',entradas:500,gastos:120,saldo:3745}
+  ],
+  "Dela":[
+    {mes:'Janeiro',entradas:0,gastos:0,saldo:4010},
+    {mes:'Fevereiro',entradas:0,gastos:0,saldo:4010},
+    {mes:'Março',entradas:0,gastos:0,saldo:4010},
+    {mes:'Abril',entradas:0,gastos:70,saldo:3940},
+    {mes:'Maio',entradas:0,gastos:0,saldo:3940},
+    {mes:'Junho',entradas:0,gastos:40,saldo:3900},
+    {mes:'Julho',entradas:0,gastos:20,saldo:3880},
+    {mes:'Agosto',entradas:0,gastos:50,saldo:3830},
+    {mes:'Setembro',entradas:0,gastos:110,saldo:3720},
+    {mes:'Outubro',entradas:0,gastos:0,saldo:3720},
+    {mes:'Novembro',entradas:0,gastos:0,saldo:3720},
+    {mes:'Dezembro',entradas:0,gastos:100,saldo:3620}
+  ]
+};
 
+/* DARK MODE */
 function toggleDarkMode(){
   document.body.classList.toggle('dark');
 }
 
-/* ============================
-   NAVEGAÇÃO ENTRE ABAS
-============================ */
-
+/* NAVEGAÇÃO */
 document.querySelectorAll('.nav-card').forEach(card=>{
   card.addEventListener('click', ()=>{
     document.querySelectorAll('.nav-card').forEach(c=>c.classList.remove('active'));
@@ -207,10 +385,7 @@ document.querySelectorAll('.nav-card').forEach(card=>{
   });
 });
 
-/* ============================
-   SALDOS
-============================ */
-
+/* SALDOS */
 function atualizarTotais(){
   let total=0, semMoedas=0, semCartao=0;
   for(const nome in abas){
@@ -246,10 +421,7 @@ function atualizarSaldo(input){
   localStorage.setItem('abas', JSON.stringify(abas));
 }
 
-/* ============================
-   MOVIMENTOS
-============================ */
-
+/* MOVIMENTOS */
 function mostrarFormMovimento(){
   const f = document.getElementById('novo-movimento');
   f.style.display = f.style.display === 'none' ? 'block' : 'none';
@@ -421,10 +593,7 @@ function apagarMovimento(mes,i){
   atualizarGraficoCategorias(mes);
 }
 
-/* ============================
-   GRÁFICO DE GASTOS (CATEGORIAS)
-============================ */
-
+/* GRÁFICO CATEGORIAS */
 function atualizarGraficoCategorias(mes){
   const ctx = document.getElementById('graficoCategorias').getContext('2d');
   if(!movimentos[mes]) return;
@@ -444,7 +613,6 @@ function atualizarGraficoCategorias(mes){
 
   const labels = Object.keys(categorias);
   const data = Object.values(categorias);
-
   const cores = ['#ff6384','#36a2eb','#ffce56','#4caf50','#9c27b0','#ff9f40'];
 
   if(graficoPizza) graficoPizza.destroy();
@@ -477,13 +645,8 @@ function atualizarGraficoCategorias(mes){
     }
   });
 }
-</script>
 
-<script>
-/* ============================
-   DETALHES GASTOS (PAINEL)
-============================ */
-
+/* DETALHES GASTOS */
 function abrirDetalhesGastos(){
   if(!mesAtualGrafico || !movimentos[mesAtualGrafico]) return;
 
@@ -545,10 +708,7 @@ document.getElementById('details-panel').addEventListener('click', e=>{
   e.stopPropagation();
 });
 
-/* ============================
-   PLANEAMENTO — TABELA SIMPLES
-============================ */
-
+/* PLANEAMENTO */
 function preencherSelectPlaneamentoAba(){
   const sel = document.getElementById('planeamento-aba');
   sel.innerHTML = "";
@@ -579,10 +739,7 @@ function carregarPlaneamento(){
   });
 }
 
-/* ============================
-   INICIALIZAÇÃO FINAL
-============================ */
-
+/* INICIALIZAÇÃO */
 atualizarSaldosLista();
 preencherSelectAbas();
 inicializarFiltros();
@@ -597,5 +754,3 @@ carregarPlaneamento();
 </script>
 </body>
 </html>
-
-
