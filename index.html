@@ -1176,7 +1176,7 @@ function filtrarMovimentos(){
       if(x.tipo === 'ganho') entradas += x.valor;
       else gastos += x.valor;
     });
-    let fluxo = entradas - gastos;
+    let fluxo = entradas + gastos;
 
     const cardResumo = document.createElement('div');
     cardResumo.className = 'list-item';
