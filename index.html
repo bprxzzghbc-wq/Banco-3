@@ -111,14 +111,12 @@ body.dark .sub-aba-mes button.active{background:#d71c1c;color:white;}
 .tab-content{display:none;}
 .tab-content.active{display:block;}
 
-/* TABELA PLANEAMENTO */
+/* PLANEAMENTO */
 .table-plan{width:100%;border-collapse:collapse;margin-top:8px;}
 .table-plan th,.table-plan td{
   padding:6px 4px;font-size:13px;border-bottom:1px solid #ddd;
 }
 .table-plan th{text-align:left;color:#d71c1c;}
-.table-plan input[type="number"]{width:80px;text-align:right;}
-.plan-total{margin-top:8px;font-size:14px;font-weight:600;text-align:right;}
 </style>
 </head>
 
@@ -133,18 +131,17 @@ body.dark .sub-aba-mes button.active{background:#d71c1c;color:white;}
 
 <div class="nav-container">
   <div class="nav-card active" data-target="saldos">
-    <img class="nav-icon" src="data:image/svg+xml;utf8,<svg fill='red' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'><path d='M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3h-2V7H5v10h14v-3h2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7zm13 4h6v2h-6v-2z'/></svg>">
+    <img class="nav-icon" src="data:image/svg+xml;utf8,<svg fill='red' viewBox='0 0 24 24'><path d='M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3h-2V7H5v10h14v-3h2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7zm13 4h6v2h-6v-2z'/></svg>">
     <span>Saldos</span>
-    <span class="tag">Principal</span>
   </div>
 
   <div class="nav-card" data-target="movimentos">
-    <img class="nav-icon" src="data:image/svg+xml;utf8,<svg fill='red' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'><path d='M4 4h7v2H6.41L11 10.59 9.59 12 5 7.41V11H3V4zm16 9v7h-7v-2h4.59L13 13.41 14.41 12 19 16.59V13h2z'/></svg>">
+    <img class="nav-icon" src="data:image/svg+xml;utf8,<svg fill='red' viewBox='0 0 24 24'><path d='M4 4h7v2H6.41L11 10.59 9.59 12 5 7.41V11H3V4zm16 9v7h-7v-2h4.59L13 13.41 14.41 12 19 16.59V13h2z'/></svg>">
     <span>Movimentos</span>
   </div>
 
   <div class="nav-card" data-target="planeamento">
-    <img class="nav-icon" src="data:image/svg+xml;utf8,<svg fill='red' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'><path d='M3 3h18v2H3V3zm2 4h14v2H5V7zm-2 4h18v2H3v-2zm2 4h10v2H5v-2z'/></svg>">
+    <img class="nav-icon" src="data:image/svg+xml;utf8,<svg fill='red' viewBox='0 0 24 24'><path d='M3 3h18v2H3V3zm2 4h14v2H5V7zm-2 4h18v2H3v-2zm2 4h10v2H5v-2z'/></svg>">
     <span>Planeamento</span>
   </div>
 </div>
@@ -167,11 +164,6 @@ body.dark .sub-aba-mes button.active{background:#d71c1c;color:white;}
   <section class="card">
     <h3>Saldos por Aba</h3>
     <div id="lista-saldos"></div>
-  </section>
-
-  <section class="card">
-    <h3>Gráfico de Saldos</h3>
-    <canvas id="saldoGrafico" width="400" height="200"></canvas>
   </section>
 </div>
 
@@ -243,28 +235,34 @@ body.dark .sub-aba-mes button.active{background:#d71c1c;color:white;}
 <div id="planeamento" class="tab-content">
   <section class="card">
     <h3>Planeamento Mensal</h3>
-    <label>Mês:</label>
-    <select id="planeamento-mes" onchange="carregarPlaneamentoMes()"></select>
-    <button class="add-button" onclick="criarMesPlaneamento()">+ Criar mês planeamento</button>
+
+    <label>Aba:</label>
+    <select id="planeamento-aba" onchange="carregarPlaneamento()"></select>
 
     <table class="table-plan">
       <thead>
         <tr>
-          <th>Categoria</th>
-          <th>Planeado (€)</th>
+          <th>Mês</th>
+          <th>Entradas</th>
+          <th>Gastos</th>
+          <th>Saldo</th>
         </tr>
       </thead>
       <tbody id="planeamento-tbody"></tbody>
     </table>
-    <div class="plan-total">Total planeado: € <span id="planeamento-total">0.00</span></div>
   </section>
 </div>
 
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script>
-/* DADOS INICIAIS */
+
+/* ============================
+   DADOS INICIAIS
+============================ */
+
 let abas = JSON.parse(localStorage.getItem('abas')) || {
   "Ibiza":245,"Dela":4010,"Money 2026":2775,"Notas de 5 (capa)":100,
   "Capa 1 (azul)":50,"Capa 2 (caixa Apple)":55,"Porta cartões":25,
@@ -282,20 +280,58 @@ if(Object.keys(movimentos).length === 0){
 }
 localStorage.setItem('movimentos', JSON.stringify(movimentos));
 
-let planeamento = JSON.parse(localStorage.getItem('planeamento')) || {};
-localStorage.setItem('planeamento', JSON.stringify(planeamento));
+/* AVÔ / PAIS NÃO CONTAM PARA SALDOS NEM GASTOS */
+const extrasAbas = ["Avô","Pais"];
 
-const extrasAbas = ["Avô","Pais"]; // não contam como gastos nem saldos
-
-let saldoGrafico = null;
 let graficoPizza = null;
 
-/* DARK MODE */
+/* ============================
+   PLANEAMENTO FIXO (TABELA)
+============================ */
+
+const planeamentoData = {
+  "Money 2026":[
+    {mes:'Janeiro',entradas:60,gastos:120,saldo:2835},
+    {mes:'Fevereiro',entradas:50,gastos:0,saldo:2885},
+    {mes:'Março',entradas:50,gastos:0,saldo:2935},
+    {mes:'Abril',entradas:60,gastos:70,saldo:2925},
+    {mes:'Maio',entradas:50,gastos:0,saldo:2975},
+    {mes:'Junho',entradas:350,gastos:60,saldo:3265},
+    {mes:'Julho',entradas:60,gastos:30,saldo:3295},
+    {mes:'Agosto',entradas:60,gastos:50,saldo:3305},
+    {mes:'Setembro',entradas:60,gastos:110,saldo:3255},
+    {mes:'Outubro',entradas:60,gastos:0,saldo:3315},
+    {mes:'Novembro',entradas:50,gastos:0,saldo:3365},
+    {mes:'Dezembro',entradas:500,gastos:120,saldo:3745}
+  ],
+  "Dela":[
+    {mes:'Janeiro',entradas:0,gastos:0,saldo:4010},
+    {mes:'Fevereiro',entradas:0,gastos:0,saldo:4010},
+    {mes:'Março',entradas:0,gastos:0,saldo:4010},
+    {mes:'Abril',entradas:0,gastos:70,saldo:3940},
+    {mes:'Maio',entradas:0,gastos:0,saldo:3940},
+    {mes:'Junho',entradas:0,gastos:40,saldo:3900},
+    {mes:'Julho',entradas:0,gastos:20,saldo:3880},
+    {mes:'Agosto',entradas:0,gastos:50,saldo:3830},
+    {mes:'Setembro',entradas:0,gastos:110,saldo:3720},
+    {mes:'Outubro',entradas:0,gastos:0,saldo:3720},
+    {mes:'Novembro',entradas:0,gastos:0,saldo:3720},
+    {mes:'Dezembro',entradas:0,gastos:100,saldo:3620}
+  ]
+};
+
+/* ============================
+   DARK MODE
+============================ */
+
 function toggleDarkMode(){
   document.body.classList.toggle('dark');
 }
 
-/* NAV */
+/* ============================
+   NAVEGAÇÃO ENTRE ABAS
+============================ */
+
 document.querySelectorAll('.nav-card').forEach(card=>{
   card.addEventListener('click', ()=>{
     document.querySelectorAll('.nav-card').forEach(c=>c.classList.remove('active'));
@@ -306,7 +342,10 @@ document.querySelectorAll('.nav-card').forEach(card=>{
   });
 });
 
-/* SALDOS */
+/* ============================
+   SALDOS
+============================ */
+
 function atualizarTotais(){
   let total=0, semMoedas=0, semCartao=0;
   for(const nome in abas){
@@ -333,30 +372,19 @@ function atualizarSaldosLista(){
     lista.appendChild(div);
   }
   atualizarTotais();
-  atualizarGrafico();
 }
 
 function atualizarSaldo(input){
   const nome = input.dataset.nome;
   abas[nome] = parseFloat(input.value) || 0;
   atualizarTotais();
-  atualizarGrafico();
   localStorage.setItem('abas', JSON.stringify(abas));
 }
 
-function atualizarGrafico(){
-  const ctx = document.getElementById('saldoGrafico').getContext('2d');
-  const labels = Object.keys(abas);
-  const data = Object.values(abas);
-  if(saldoGrafico) saldoGrafico.destroy();
-  saldoGrafico = new Chart(ctx,{
-    type:'bar',
-    data:{labels:labels,datasets:[{label:'Saldo (€)',data:data,backgroundColor:'rgba(215,28,28,0.7)'}]},
-    options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}
-  });
-}
+/* ============================
+   MOVIMENTOS
+============================ */
 
-/* MOVIMENTOS */
 function mostrarFormMovimento(){
   const f = document.getElementById('novo-movimento');
   f.style.display = f.style.display === 'none' ? 'block' : 'none';
@@ -434,7 +462,6 @@ function adicionarMovimento(){
     if(abas[aba] === undefined) abas[aba] = 0;
     abas[aba] += (tipo === 'gasto' ? -valor : valor);
     atualizarTotais();
-    atualizarGrafico();
   }
 
   const mesAno = data.slice(0,7);
@@ -516,7 +543,6 @@ function apagarMovimento(mes,i){
   if(!extrasAbas.includes(mov.aba) && abas[mov.aba] !== undefined){
     abas[mov.aba] -= mov.tipoValor;
     atualizarTotais();
-    atualizarGrafico();
   }
 
   movimentos[mes].splice(i,1);
@@ -531,7 +557,10 @@ function apagarMovimento(mes,i){
   atualizarGraficoCategorias(mes);
 }
 
-/* GRÁFICO CATEGORIAS (GASTOS) */
+/* ============================
+   GRÁFICO DE GASTOS (OTIMIZADO)
+============================ */
+
 function atualizarGraficoCategorias(mes){
   const ctx = document.getElementById('graficoCategorias').getContext('2d');
   if(!movimentos[mes]) return;
@@ -546,92 +575,79 @@ function atualizarGraficoCategorias(mes){
 
   if(graficoPizza) graficoPizza.destroy();
   graficoPizza = new Chart(ctx,{
-    type:'pie',
+    type:'doughnut',
     data:{
       labels:Object.keys(categorias),
       datasets:[{
         data:Object.values(categorias),
-        backgroundColor:['#ff6384','#36a2eb','#ffce56','#4caf50','#9c27b0','#ff9f40']
+        backgroundColor:['#ff6384','#36a2eb','#ffce56','#4caf50','#9c27b0','#ff9f40'],
+        borderWidth:0
       }]
     },
-    options:{responsive:true,plugins:{legend:{position:'bottom'}}}
+    options:{
+      responsive:true,
+      cutout:'60%',
+      plugins:{
+        legend:{position:'bottom'},
+        tooltip:{enabled:true}
+      },
+      animation:{
+        duration:400
+      }
+    }
   });
 }
 
-/* PLANEAMENTO */
-const categoriasPlaneamento = ["Comida","Compras","Outros"];
+/* ============================
+   PLANEAMENTO — TABELA SIMPLES
+============================ */
 
-function preencherSelectPlaneamentoMes(){
-  const sel = document.getElementById('planeamento-mes');
+function preencherSelectPlaneamentoAba(){
+  const sel = document.getElementById('planeamento-aba');
   sel.innerHTML = "";
-  const meses = new Set([...Object.keys(movimentos), ...Object.keys(planeamento)]);
-  Array.from(meses).sort().forEach(m=>{
+  Object.keys(planeamentoData).forEach(aba=>{
     const o = document.createElement('option');
-    o.value = m; o.textContent = m;
+    o.value = aba;
+    o.textContent = aba;
     sel.appendChild(o);
   });
-  if(sel.options.length === 0){
-    const hoje = new Date().toISOString().slice(0,7);
-    const o = document.createElement('option');
-    o.value = hoje; o.textContent = hoje;
-    sel.appendChild(o);
-  }
 }
 
-function criarMesPlaneamento(){
-  const hoje = new Date().toISOString().slice(0,7);
-  if(!planeamento[hoje]){
-    planeamento[hoje] = {};
-    categoriasPlaneamento.forEach(c=>planeamento[hoje][c] = 0);
-    localStorage.setItem('planeamento', JSON.stringify(planeamento));
-  }
-  preencherSelectPlaneamentoMes();
-  document.getElementById('planeamento-mes').value = hoje;
-  carregarPlaneamentoMes();
-}
-
-function carregarPlaneamentoMes(){
-  const mes = document.getElementById('planeamento-mes').value;
-  if(!planeamento[mes]){
-    planeamento[mes] = {};
-    categoriasPlaneamento.forEach(c=>planeamento[mes][c] = 0);
-  }
+function carregarPlaneamento(){
+  const aba = document.getElementById('planeamento-aba').value;
   const tbody = document.getElementById('planeamento-tbody');
   tbody.innerHTML = "";
-  categoriasPlaneamento.forEach(cat=>{
-    const val = planeamento[mes][cat] || 0;
+
+  if(!planeamentoData[aba]) return;
+
+  planeamentoData[aba].forEach(linha=>{
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${cat}</td>
-      <td><input type="number" value="${val}" oninput="atualizarPlaneamentoValor('${mes}','${cat}',this.value)"></td>
+      <td>${linha.mes}</td>
+      <td>€ ${linha.entradas.toFixed(2)}</td>
+      <td>€ ${linha.gastos.toFixed(2)}</td>
+      <td>€ ${linha.saldo.toFixed(2)}</td>
     `;
     tbody.appendChild(tr);
   });
-  atualizarTotalPlaneamento(mes);
-  localStorage.setItem('planeamento', JSON.stringify(planeamento));
 }
 
-function atualizarPlaneamentoValor(mes,cat,valor){
-  planeamento[mes][cat] = parseFloat(valor) || 0;
-  atualizarTotalPlaneamento(mes);
-  localStorage.setItem('planeamento', JSON.stringify(planeamento));
-}
+/* ============================
+   INICIALIZAÇÃO
+============================ */
 
-function atualizarTotalPlaneamento(mes){
-  let total = 0;
-  for(const c in planeamento[mes]) total += planeamento[mes][c];
-  document.getElementById('planeamento-total').textContent = total.toFixed(2);
-}
-
-/* INICIALIZAÇÃO */
+atualizarSaldosLista();
 preencherSelectAbas();
 inicializarFiltros();
-atualizarSaldosLista();
 filtrarMovimentos();
 criarSubAbasMeses();
-atualizarGraficoCategorias(Object.keys(movimentos)[0] || "");
-preencherSelectPlaneamentoMes();
-carregarPlaneamentoMes();
+
+const primeiroMes = Object.keys(movimentos)[0];
+if(primeiroMes) atualizarGraficoCategorias(primeiroMes);
+
+preencherSelectPlaneamentoAba();
+carregarPlaneamento();
 </script>
 </body>
 </html>
+
