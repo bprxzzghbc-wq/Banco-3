@@ -234,16 +234,23 @@ body.dark .card{
   font-size:56px;
   font-weight:900;
   letter-spacing:-0.06em;
+  line-height:1.05;
 }
 .total-value span{
-  font-size:22px;
+  display:inline-block;
+}
+.total-value span:first-child{
+  font-size:24px;
   opacity:0.9;
-  margin-right:4px;
+  margin-right:10px; /* MAIS ESPAÇO ENTRE € E NÚMERO */
+}
+.total-value span:last-child{
+  font-size:56px;
 }
 .total-row-small{
   display:flex;
   justify-content:space-between;
-  margin-top:6px;
+  margin-top:8px;
   font-size:12px;
   opacity:0.85;
 }
@@ -885,7 +892,9 @@ body.dark .badge{
 /* ===========================
    DADOS INICIAIS
 =========================== */
-let abas = JSON.parse(localStorage.getItem('abas-ultra')) || {
+
+/* Usa as tuas chaves antigas: "abas" e "movimentos" */
+let abas = JSON.parse(localStorage.getItem('abas')) || {
   "Ibiza":245,
   "Dela":4010,
   "Money 2026":2775,
@@ -900,18 +909,20 @@ let abas = JSON.parse(localStorage.getItem('abas-ultra')) || {
   "Capa Apple Azul Escura":0,
   "Moedas carteira":131.92
 };
-localStorage.setItem('abas-ultra', JSON.stringify(abas));
+localStorage.setItem('abas', JSON.stringify(abas));
 
-let movimentos = JSON.parse(localStorage.getItem('movimentos-ultra')) || {};
+let movimentos = JSON.parse(localStorage.getItem('movimentos')) || {};
 if(Object.keys(movimentos).length === 0){
   movimentos["2026-04"] = [
     {tipo:"ganho", valor:100, tipoValor:100, aba:"Money 2026", desc:"Exemplo entrada", data:"2026-04-08", categoria:"Outros"},
     {tipo:"gasto", valor:20, tipoValor:-20, aba:"Money 2026", desc:"McDonald's", data:"2026-04-09", categoria:"Comida"}
   ];
 }
-localStorage.setItem('movimentos-ultra', JSON.stringify(movimentos));
+localStorage.setItem('movimentos', JSON.stringify(movimentos));
 
-const extrasAbas = ["Avô","Pais"]; // não aparecem nos saldos
+/* Avô / Pais: abas extra que não entram nos saldos */
+const extrasAbas = ["Avô","Pais"];
+
 let graficoPizza = null;
 let mesAtualGrafico = null;
 
@@ -992,7 +1003,7 @@ function atualizarTotais(){
     chip.textContent = "Forte";
   }
 
-  localStorage.setItem('abas-ultra', JSON.stringify(abas));
+  localStorage.setItem('abas', JSON.stringify(abas));
 }
 
 function atualizarSaldosLista(){
@@ -1126,8 +1137,8 @@ function adicionarMovimento(){
     categoria
   });
 
-  localStorage.setItem('movimentos-ultra', JSON.stringify(movimentos));
-  localStorage.setItem('abas-ultra', JSON.stringify(abas));
+  localStorage.setItem('movimentos', JSON.stringify(movimentos));
+  localStorage.setItem('abas', JSON.stringify(abas));
 
   document.getElementById('valor-movimento').value = "";
   document.getElementById('descricao-movimento').value = "";
@@ -1193,7 +1204,7 @@ function filtrarMovimentos(){
             <span class="mov-tag ${tipoTagClass}">${x.tipo === 'ganho' ? 'ENTRADA' : 'GASTO'}</span>
             <span class="mov-title">${x.desc}</span>
           </div>
-          <div class="mov-meta">${x.data} • ${x.aba} • ${x.categoria}</div>
+          <div class="mov-meta">${x.data} • ${x.aba} • ${x.categoria || 'Sem categoria'}</div>
         </div>
         <div class="mov-actions">
           <span class="mov-valor ${valorClass}">${sinal} € ${x.valor.toFixed(2)}</span>
@@ -1217,8 +1228,8 @@ function apagarMovimento(mes,i){
   movimentos[mes].splice(i,1);
   if(movimentos[mes].length === 0) delete movimentos[mes];
 
-  localStorage.setItem('movimentos-ultra', JSON.stringify(movimentos));
-  localStorage.setItem('abas-ultra', JSON.stringify(abas));
+  localStorage.setItem('movimentos', JSON.stringify(movimentos));
+  localStorage.setItem('abas', JSON.stringify(abas));
 
   inicializarFiltros();
   filtrarMovimentos();
@@ -1227,10 +1238,24 @@ function apagarMovimento(mes,i){
 
 /* ===========================
    GRÁFICO CATEGORIAS
+   (SÓ A PARTIR DE 2026-05)
 =========================== */
+function mesTemCategoriasAtivas(mes){
+  /* Só conta categorias a partir de 2026-05 */
+  return mes >= "2026-05";
+}
+
 function atualizarGraficoCategorias(mes){
   const ctx = document.getElementById('graficoCategorias').getContext('2d');
-  if(!movimentos[mes]) return;
+
+  /* Se o mês for antes de 2026-05, não mostra categorias */
+  if(!mesTemCategoriasAtivas(mes) || !movimentos[mes]){
+    if(graficoPizza) graficoPizza.destroy();
+    graficoPizza = null;
+    document.getElementById('chart-legend').innerHTML = "";
+    mesAtualGrafico = null;
+    return;
+  }
 
   mesAtualGrafico = mes;
 
@@ -1239,8 +1264,8 @@ function atualizarGraficoCategorias(mes){
 
   movimentos[mes].forEach(m=>{
     if(m.tipo === 'gasto'){
-      if(!categorias[m.categoria]) categorias[m.categoria] = 0;
-      categorias[m.categoria] += m.valor;
+      if(!categorias[m.categoria || 'Outros']) categorias[m.categoria || 'Outros'] = 0;
+      categorias[m.categoria || 'Outros'] += m.valor;
       total += m.valor;
     }
   });
@@ -1294,9 +1319,11 @@ function atualizarGraficoCategorias(mes){
 
 /* ===========================
    DETALHES GASTOS
+   (SÓ A PARTIR DE 2026-05)
 =========================== */
 function abrirDetalhesGastos(){
   if(!mesAtualGrafico || !movimentos[mesAtualGrafico]) return;
+  if(!mesTemCategoriasAtivas(mesAtualGrafico)) return;
 
   const movMes = movimentos[mesAtualGrafico].filter(m=>m.tipo === 'gasto');
   if(movMes.length === 0) return;
@@ -1306,8 +1333,9 @@ function abrirDetalhesGastos(){
 
   movMes.forEach(m=>{
     totalGastos += m.valor;
-    if(!categorias[m.categoria]) categorias[m.categoria] = 0;
-    categorias[m.categoria] += m.valor;
+    const cat = m.categoria || 'Outros';
+    if(!categorias[cat]) categorias[cat] = 0;
+    categorias[cat] += m.valor;
   });
 
   const overlay = document.getElementById('details-overlay');
@@ -1389,8 +1417,15 @@ atualizarSaldosLista();
 preencherSelectAbas();
 inicializarFiltros();
 filtrarMovimentos();
-const primeiroMes = Object.keys(movimentos)[0];
-if(primeiroMes) atualizarGraficoCategorias(primeiroMes);
+
+/* Se já houver meses, escolhe o primeiro para o gráfico.
+   Mas só ativa gráfico se for >= 2026-05 */
+const mesesExistentes = Object.keys(movimentos).sort();
+if(mesesExistentes.length > 0){
+  const primeiroMes = mesesExistentes[0];
+  atualizarGraficoCategorias(primeiroMes);
+}
+
 preencherSelectPlaneamentoAba();
 carregarPlaneamento();
 </script>
