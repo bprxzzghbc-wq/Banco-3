@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Banco Gonçalo — Versão Avançada</title>
+<title>Banco Gonçalo</title>
 
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui,sans-serif;}
@@ -24,12 +24,12 @@ body.dark{background:#121212;color:#eee;}
   background:white;color:#d71c1c;font-weight:600;cursor:pointer;
 }
 
-/* NAV PREMIUM */
+/* NAV */
 .nav-container{display:flex;flex-direction:column;gap:10px;margin-bottom:18px;}
 .nav-card{
   display:flex;align-items:center;gap:10px;padding:12px 16px;background:white;
   border-radius:18px;box-shadow:0 4px 14px rgba(0,0,0,0.08);cursor:pointer;
-  transition:0.25s;position:relative;
+  transition:0.25s;
 }
 body.dark .nav-card{background:#2b2b2b;box-shadow:0 4px 14px rgba(0,0,0,0.5);}
 .nav-card:hover{transform:translateY(-2px);}
@@ -49,14 +49,18 @@ body.dark .card{background:#2b2b2b;box-shadow:0 4px 14px rgba(0,0,0,0.5);}
   background:linear-gradient(135deg,#d71c1c,#a80000);color:white;text-align:center;
 }
 .total-card span{font-size:14px;opacity:0.9;}
-.total-card h2{margin-top:6px;font-size:30px;font-weight:700;}
+.total-card h2{
+  margin-top:6px;
+  font-size:40px;
+  font-weight:800;
+}
 
+/* SALDOS LISTA */
 .small-row{
   display:flex;justify-content:space-between;align-items:center;
   margin-top:4px;font-size:14px;
 }
 
-/* ITENS */
 .item{
   display:flex;justify-content:space-between;align-items:center;
   padding:12px 14px;background:white;border-radius:16px;margin-bottom:8px;
@@ -84,7 +88,7 @@ body.dark .item input[type="number"]{background:#3a3a3a;color:#eee;}
   background:none;border:none;color:#ff4b4b;font-size:18px;cursor:pointer;
 }
 
-/* SELECTS / INPUTS */
+/* INPUTS */
 label{display:block;margin-top:6px;font-size:13px;}
 select,input[type="text"],input[type="date"],input[type="number"]{
   width:100%;margin-top:3px;margin-bottom:6px;padding:7px 9px;border-radius:10px;
@@ -115,7 +119,7 @@ body.dark .sub-aba-mes button.active{background:#d71c1c;color:white;}
 }
 .table-plan th{text-align:left;color:#d71c1c;}
 
-/* DETALHES GASTOS - PAINEL DESLIZANTE */
+/* DETALHES GASTOS */
 .details-overlay{
   position:fixed;left:0;right:0;top:0;bottom:0;
   background:rgba(0,0,0,0.4);
@@ -152,6 +156,18 @@ body.dark .detail-card{background:#3a3a3a;}
 .details-section-title{
   margin-top:10px;margin-bottom:4px;font-size:13px;font-weight:600;opacity:0.9;
 }
+
+/* MOVIMENTOS LISTA: cores + / - */
+.mov-valor-ganho{color:#2e7d32;font-weight:600;}
+.mov-valor-gasto{color:#c62828;font-weight:600;}
+.mov-tipo-tag{
+  font-size:11px;
+  padding:2px 6px;
+  border-radius:999px;
+  margin-right:6px;
+}
+.mov-tipo-ganho{background:#e8f5e9;color:#2e7d32;}
+.mov-tipo-gasto{background:#ffebee;color:#c62828;}
 </style>
 </head>
 
@@ -160,7 +176,7 @@ body.dark .detail-card{background:#3a3a3a;}
 
 <header class="header">
   <h1>Olá Gonçalo!</h1>
-  <p>Banco Expandido — Versão Avançada</p>
+  <p>Banco — versão limpa e clara</p>
   <button class="toggle-btn" onclick="toggleDarkMode()">Dark / Light</button>
 </header>
 
@@ -184,7 +200,7 @@ body.dark .detail-card{background:#3a3a3a;}
 <!-- SALDOS -->
 <div id="saldos" class="tab-content active">
   <section class="card total-card">
-    <span>Fluxo Total</span>
+    <span>Fluxo Total (todas as abas)</span>
     <h2>€ <span id="total">0.00</span></h2>
     <div class="small-row">
       <span>Sem moedas</span>
@@ -210,8 +226,8 @@ body.dark .detail-card{background:#3a3a3a;}
     <div id="novo-movimento" style="display:none;">
       <label>Tipo:</label>
       <select id="tipo-movimento">
-        <option value="ganho">Ganho</option>
-        <option value="gasto">Gasto</option>
+        <option value="ganho">Ganho (entrada)</option>
+        <option value="gasto">Gasto (saída)</option>
       </select>
 
       <label>Valor (€):</label>
@@ -310,10 +326,7 @@ body.dark .detail-card{background:#3a3a3a;}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-/* ============================
-   DADOS INICIAIS
-============================ */
-
+/* DADOS INICIAIS */
 let abas = JSON.parse(localStorage.getItem('abas')) || {
   "Ibiza":245,"Dela":4010,"Money 2026":2775,"Notas de 5 (capa)":100,
   "Capa 1 (azul)":50,"Capa 2 (caixa Apple)":55,"Porta cartões":25,
@@ -331,13 +344,13 @@ if(Object.keys(movimentos).length === 0){
 }
 localStorage.setItem('movimentos', JSON.stringify(movimentos));
 
-/* AVÔ / PAIS: abas normais, mas não aparecem nos saldos */
+/* Avô / Pais: abas normais, mas não aparecem nos saldos */
 const extrasAbas = ["Avô","Pais"];
 
 let graficoPizza = null;
 let mesAtualGrafico = null;
 
-/* PLANEAMENTO FIXO */
+/* Planeamento fixo */
 const planeamentoData = {
   "Money 2026":[
     {mes:'Janeiro',entradas:60,gastos:120,saldo:2835},
@@ -495,7 +508,6 @@ function adicionarMovimento(){
     return;
   }
 
-  // Atualiza saldo apenas se a aba existir nos saldos (não Avô/Pais)
   if(!extrasAbas.includes(aba)){
     abas[aba] += (tipo === 'gasto' ? -valor : valor);
     atualizarTotais();
@@ -562,9 +574,15 @@ function filtrarMovimentos(){
     movMes.forEach((x,i)=>{
       const div = document.createElement('div');
       div.className = 'item';
+      const tipoTagClass = x.tipo === 'ganho' ? 'mov-tipo-ganho' : 'mov-tipo-gasto';
+      const valorClass = x.tipo === 'ganho' ? 'mov-valor-ganho' : 'mov-valor-gasto';
+      const sinal = x.tipo === 'ganho' ? '+' : '-';
       div.innerHTML = `
-        <span>${x.data} | ${x.desc} (${x.aba}) [${x.categoria}]</span>
-        <span>€ ${x.valor.toFixed(2)}</span>
+        <span>
+          <span class="mov-tipo-tag ${tipoTagClass}">${x.tipo === 'ganho' ? 'Entrada' : 'Gasto'}</span>
+          ${x.data} | ${x.desc} (${x.aba}) [${x.categoria}]
+        </span>
+        <span class="${valorClass}">${sinal} € ${x.valor.toFixed(2)}</span>
         <button class="delete-btn" onclick="apagarMovimento('${mesAtual}',${i})">&times;</button>
       `;
       lista.appendChild(div);
