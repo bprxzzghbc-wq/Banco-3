@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Banco Gonçalo — Ultra</title>
+<title>Banco Gonçalo — Ultra Apple</title>
 
 <style>
 /* ===========================
@@ -230,27 +230,28 @@ body.dark .card{
   background:rgba(249,250,251,0.12);
 }
 .total-value{
-  margin-top:6px;
+  margin-top:8px;
   font-size:56px;
   font-weight:900;
-  letter-spacing:-0.06em;
-  line-height:1.05;
+  letter-spacing:-0.04em;
+  line-height:1.15;
 }
 .total-value span{
   display:inline-block;
 }
 .total-value span:first-child{
-  font-size:24px;
+  font-size:26px;
   opacity:0.9;
-  margin-right:10px; /* MAIS ESPAÇO ENTRE € E NÚMERO */
+  margin-right:14px;
 }
 .total-value span:last-child{
   font-size:56px;
 }
 .total-row-small{
   display:flex;
-  justify-content:space-between;
-  margin-top:8px;
+  flex-direction:column;
+  gap:2px;
+  margin-top:10px;
   font-size:12px;
   opacity:0.85;
 }
@@ -1241,18 +1242,21 @@ function apagarMovimento(mes,i){
    (SÓ A PARTIR DE 2026-05)
 =========================== */
 function mesTemCategoriasAtivas(mes){
-  /* Só conta categorias a partir de 2026-05 */
+  // Só conta categorias a partir de 2026-05
   return mes >= "2026-05";
 }
 
 function atualizarGraficoCategorias(mes){
   const ctx = document.getElementById('graficoCategorias').getContext('2d');
+  const legend = document.getElementById('chart-legend');
 
-  /* Se o mês for antes de 2026-05, não mostra categorias */
+  // Se o mês for antes de 2026-05, não mostra gráfico e mostra aviso
   if(!mesTemCategoriasAtivas(mes) || !movimentos[mes]){
     if(graficoPizza) graficoPizza.destroy();
     graficoPizza = null;
-    document.getElementById('chart-legend').innerHTML = "";
+    legend.innerHTML = `<span style="font-size:11px;opacity:0.7;">
+      As categorias só começam a contar a partir de maio 2026.
+    </span>`;
     mesAtualGrafico = null;
     return;
   }
@@ -1264,8 +1268,9 @@ function atualizarGraficoCategorias(mes){
 
   movimentos[mes].forEach(m=>{
     if(m.tipo === 'gasto'){
-      if(!categorias[m.categoria || 'Outros']) categorias[m.categoria || 'Outros'] = 0;
-      categorias[m.categoria || 'Outros'] += m.valor;
+      const cat = m.categoria || 'Outros';
+      if(!categorias[cat]) categorias[cat] = 0;
+      categorias[cat] += m.valor;
       total += m.valor;
     }
   });
@@ -1304,7 +1309,6 @@ function atualizarGraficoCategorias(mes){
     }
   });
 
-  const legend = document.getElementById('chart-legend');
   legend.innerHTML = "";
   labels.forEach((nome,i)=>{
     const pill = document.createElement('div');
